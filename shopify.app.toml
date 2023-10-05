@@ -1,0 +1,27 @@
+# Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
+
+name = "Up-sell "
+client_id = "09643a1debbb2d6bfed9ceb384df5523"
+application_url = "https://valentine-fisheries-vernon-veterans.trycloudflare.com"
+embedded = true
+
+[access_scopes]
+# Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
+scopes = "write_products"
+
+[auth]
+redirect_urls = [
+  "https://valentine-fisheries-vernon-veterans.trycloudflare.com/auth/callback",
+  "https://valentine-fisheries-vernon-veterans.trycloudflare.com/auth/shopify/callback",
+  "https://valentine-fisheries-vernon-veterans.trycloudflare.com/api/auth/callback"
+]
+
+[webhooks]
+api_version = "2023-10"
+
+[pos]
+embedded = false
+
+[build]
+automatically_update_urls_on_dev = true
+dev_store_url = "shoprunner-checkout-extension-ui.myshopify.com"
