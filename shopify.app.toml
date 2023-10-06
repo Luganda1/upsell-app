@@ -2,7 +2,7 @@
 
 name = "Up-sell "
 client_id = "09643a1debbb2d6bfed9ceb384df5523"
-application_url = "https://gloves-nashville-carlo-luxury.trycloudflare.com"
+application_url = "https://actively-ave-martin-fields.trycloudflare.com"
 embedded = true
 
 [access_scopes]
@@ -11,9 +11,9 @@ scopes = "write_products, read_files, write_files, read_metaobjects, write_metao
 
 [auth]
 redirect_urls = [
-  "https://gloves-nashville-carlo-luxury.trycloudflare.com/auth/callback",
-  "https://gloves-nashville-carlo-luxury.trycloudflare.com/auth/shopify/callback",
-  "https://gloves-nashville-carlo-luxury.trycloudflare.com/api/auth/callback"
+  "https://actively-ave-martin-fields.trycloudflare.com/auth/callback",
+  "https://actively-ave-martin-fields.trycloudflare.com/auth/shopify/callback",
+  "https://actively-ave-martin-fields.trycloudflare.com/api/auth/callback"
 ]
 
 [webhooks]

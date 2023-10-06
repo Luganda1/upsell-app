@@ -16,8 +16,20 @@ handle = "up-sell"
 
 [[extensions.targeting]]
 module = "./src/Checkout.jsx"
-target = "purchase.checkout.block.render"
+target = "purchase.checkout.shipping-option-item.details.render"
 
+# [[extensions.targeting]]
+# module = "./src/ShippingPage.jsx"
+# target = "purchase.checkout.cart-line-item.render-after"
+
+[[extensions.targeting]]
+module = "./src/PreSaleBanner.jsx"
+target = "purchase.checkout.cart-line-list.render-after"
+
+
+[[extensions.targeting]]
+target = "purchase.thank-you.customer-information.render-after"
+module = "./src/Thankyou.jsx"
 [extensions.capabilities]
 # Gives your extension access to directly query Shopify’s storefront API.
 # https://shopify.dev/docs/api/checkout-ui-extensions/unstable/configuration#api-access

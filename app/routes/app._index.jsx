@@ -11,7 +11,7 @@ import {
   VerticalStack,
   useBreakpoints,
 } from "@shopify/polaris";
-import { useState, useCallback, useEffect, useMemo} from "react";
+import { useState, useCallback } from "react";
 import { json } from "@remix-run/node";
 import {
   useLoaderData,
@@ -20,7 +20,7 @@ import {
   useNavigation,
 } from "@remix-run/react";
 import { authenticate } from "../shopify.server";
-import SearcBar from "~/Components/SearcBar";
+import SearchBar from "~/Components/SearchBar";
 
 const sampledata = {
   title: "Union STR Snowboard Bindings - 2023",
@@ -329,7 +329,7 @@ export default function AdditionalPage() {
                 onChange={handleCollectionSelection}
                 value={selectedCollection}
               /> */}
-              <SearcBar 
+              <SearchBar 
               options={collectionOptions} 
               onChange={handleCollectionSelection}
               />
