@@ -25,15 +25,13 @@ export default reactExtension(
 
 function Extension() {
   const [data, setData] = useState();
-  const { query, ui } = useApi();
+  const { query } = useApi();
   const CartLineAddChange = useApplyCartLinesChange();
   const cartLineItems = useCartLines();
   const [selectedProduct, setSelectedProduct] = useState();
   const [prePurchaseId, setPrePurchaseId] = useState(
     "gid://shopify/Product/8569393873173"
   );
-  const totalCartAmount = useTotalAmount();
-
   useEffect(() => {
     query(
       `query ($first: Int!) {
@@ -69,14 +67,14 @@ function Extension() {
         variables: { first: 250 },
       }
     )
-      .then(({ data, errors }) => setData(data))
+      .then(({ data }) => setData(data))
       .catch((error) => error.message);
   }, [query]);
 
   useEffect(() => {
     query(`
   query {
-    metaobjects(type: "app_pre_puchase", first: 250) {
+    metaobjects(type: "app_pre_purchase", first: 250) {
       nodes {
         handle
         type
@@ -91,7 +89,6 @@ function Extension() {
       .catch((error) => error.message);
   }, [query]);
 
-  // console.log(selectedProduct, "THis is the selected product ")
 
   // It handles all the logic for adding the product to cart
   const handdleProductAdded = async (node) => {
@@ -104,10 +101,10 @@ function Extension() {
     });
   };
 
-  const hasMatchingId = cartLineItems.some(
-    (item) =>
-      item.merchandise.id === "gid://shopify/ProductVariant/46322009702677"
-  );
+  // const hasMatchingId = cartLineItems.some(
+  //   (item) =>
+  //     item.merchandise.id === "gid://shopify/ProductVariant/46322009702677"
+  // );
 
   useEffect(() => {
     (async function returnSelectedProductId(data) {

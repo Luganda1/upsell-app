@@ -19567,11 +19567,6 @@ ${errorInfo.componentStack}`);
     throw new ExtensionHasNoMethodError("applyNoteChange", api.extension.target);
   }
 
-  // node_modules/@shopify/ui-extensions-react/build/esm/surfaces/checkout/hooks/cost.mjs
-  function useTotalAmount() {
-    return useSubscription(useApi().cost.totalAmount);
-  }
-
   // node_modules/@shopify/ui-extensions-react/build/esm/surfaces/checkout/hooks/cart-lines.mjs
   function useCartLines() {
     const {
@@ -19644,14 +19639,13 @@ ${errorInfo.componentStack}`);
   function Extension2() {
     var _a;
     const [data, setData] = (0, import_react20.useState)();
-    const { query, ui } = useApi();
+    const { query } = useApi();
     const CartLineAddChange = useApplyCartLinesChange();
     const cartLineItems = useCartLines();
     const [selectedProduct, setSelectedProduct] = (0, import_react20.useState)();
     const [prePurchaseId, setPrePurchaseId] = (0, import_react20.useState)(
       "gid://shopify/Product/8569393873173"
     );
-    const totalCartAmount = useTotalAmount();
     (0, import_react20.useEffect)(() => {
       query(
         `query ($first: Int!) {
@@ -19686,12 +19680,12 @@ ${errorInfo.componentStack}`);
         {
           variables: { first: 250 }
         }
-      ).then(({ data: data2, errors }) => setData(data2)).catch((error) => error.message);
+      ).then(({ data: data2 }) => setData(data2)).catch((error) => error.message);
     }, [query]);
     (0, import_react20.useEffect)(() => {
       query(`
   query {
-    metaobjects(type: "app_pre_puchase", first: 250) {
+    metaobjects(type: "app_pre_purchase", first: 250) {
       nodes {
         handle
         type
@@ -19712,9 +19706,6 @@ ${errorInfo.componentStack}`);
         attributes: [{ key: "Vendor", value: `${node.vendor}` }]
       });
     });
-    const hasMatchingId = cartLineItems.some(
-      (item) => item.merchandise.id === "gid://shopify/ProductVariant/46322009702677"
-    );
     (0, import_react20.useEffect)(() => {
       (function returnSelectedProductId(data2) {
         return __async(this, null, function* () {
@@ -19784,3 +19775,4 @@ ${errorInfo.componentStack}`);
     return /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Banner2, { title: "Delivery Instruction", status: "warning", children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Text2, { children: note }) });
   }
 })();
+//# sourceMappingURL=up-sell.js.map

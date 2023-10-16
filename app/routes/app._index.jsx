@@ -15,7 +15,6 @@ import { useState, useCallback } from "react";
 import { json } from "@remix-run/node";
 import {
   useLoaderData,
-  useActionData,
   useSubmit,
   useNavigation,
 } from "@remix-run/react";
@@ -89,42 +88,48 @@ export const loader = async ({ request }) => {
 };
 
 export async function action({ request }) {
+  const { admin } = await authenticate.admin(request);
   try {
     /**
      * we are creating Metaobject mutation definition using a custom namespace that
      * and we tying to the app that way we can just define it on the app and not the
      * any thing else like product or order like metafield
      */
-    const { admin } = await authenticate.admin(request);
     const metaobjectDef = await admin.graphql(
       `#graphql 
-    mutation($input: MetaobjectDefinitionCreateInput!) {
-      metaobjectDefinitionCreate(definition: $input) {
-        metaobjectDefinition {
-          id
-          type
-          fieldDefinitions {
-            key
-            type {
-              name
+      mutation($input: MetaobjectDefinitionCreateInput!) {
+        metaobjectDefinitionCreate(definition: $input) {
+          metaobjectDefinition {
+            id
+            type
+            displayNameKey
+            fieldDefinitions {
+              key
+              type {
+                name
+              }
             }
           }
         }
       }
-    }
     `,
       {
         variables: {
           input: {
-            type: "app_pre_puchase",
+            type: "app_pre_purchase",
+            name: "$app:pre_purchase",
+            displayNameKey: "title",
             access: {
-              admin: "MERCHANT_READ_WRITE",
+              admin: "PUBLIC_READ_WRITE",
               storefront: "PUBLIC_READ",
             },
-            capabilities: { publishable: { enabled: true } },
+            capabilities: { 
+              publishable: { enabled: true }, 
+              translatable: { enabled: true } 
+            },
             fieldDefinitions: [
-              { key: "title", type: "single_line_text_field" },
-              { key: "prod_id", type: "single_line_text_field" },
+              { key: "title", name: "Title", type: "single_line_text_field" },
+              { key: "prod_id", name: "Product Id", type: "single_line_text_field" },
             ],
           },
         },
@@ -133,68 +138,65 @@ export async function action({ request }) {
     const metaobjectDefResponse = await metaobjectDef.json();
     return metaobjectDefResponse;
   } catch (error) {
-    console.log(error, "MUTATION DEFINITION ERROR ")
+    throw new Response(`${error} MUTATION DEFINITION ERROR`, { status: 404 });
   } finally {
-    /**
+        /**
  * This is used to create meta object mutation that saves the selected product
  * to the shopify app object so we can use it in the UI extension to display
  * in the checkout for pre-purhcase marketing
  */
-    const { admin } = await authenticate.admin(request);
-    const formData = new URLSearchParams(await request.text());
-    const productTitle = formData.get("title");
-    const productId = formData.get("id");
-    const response = await admin.graphql(
-      `#graphql
-      mutation metaobjectCreate($metaobject: MetaobjectCreateInput!) {
-      metaobjectCreate(metaobject: $metaobject) {
-              metaobject {
-                id
-                displayName
-                capabilities {
-                  publishable {
-                      status
-                    }
+  const formData = new URLSearchParams(await request.text());
+  const productTitle = formData.get("title");
+  const productId = formData.get("id");
+  const response = await admin.graphql(
+    `#graphql
+    mutation metaobjectCreate($metaobject: MetaobjectCreateInput!) {
+    metaobjectCreate(metaobject: $metaobject) {
+            metaobject {
+              id
+              displayName
+              capabilities {
+                publishable {
+                    status
                   }
-                type
-                title: field(key: "title") { value }
-                prod_id: field(key: "prod_id") { value }
-              }
-              userErrors {
-                field
-                message
-              }
+                }
+              type
+              title: field(key: "title") { value }
+              prod_id: field(key: "prod_id") { value }
             }
-        }
-        
-      `,
-      {
-        variables: {
-          metaobject: {
-            type: "app_pre_puchase",
-            capabilities: {
-              publishable: {
-                status: "ACTIVE",
-              },
-            },
-            fields: [
-              {
-                key: "title",
-                value: productTitle,
-              },
-              {
-                key: "prod_id",
-                value: productId,
-              },
-            ],
-          },
-        },
+            userErrors {
+              field
+              message
+            }
+          }
       }
-    );
-
-    // const metaobjectDefResponse = await metaobjectDef.json();
-    const responseJson = await response.json();
-    return responseJson;
+      
+    `,
+    {
+      variables: {
+        metaobject: {
+          type: "app_pre_purchase",
+          capabilities: {
+            publishable: {
+              status: "ACTIVE",
+            },
+          },
+          fields: [
+            {
+              key: "title",
+              value: productTitle,
+            },
+            {
+              key: "prod_id",
+              value: productId,
+            },
+          ],
+        },
+      },
+    }
+  );
+  const responseJson = await response.json();
+  return responseJson;
   }
 }
 
@@ -206,7 +208,6 @@ export default function AdditionalPage() {
   const [selectedProduct, setSelectedProduct] = useState(sampledata);
   const { collections, shop } = useLoaderData();
   const submit = useSubmit();
-  const actionData = useActionData();
 
   const filteredCollection = collections.filter(
     (item) => item.title === selectedCollection
@@ -222,9 +223,10 @@ export default function AdditionalPage() {
   const isLoading =
     ["loading", "submitting"].includes(nav.state) && nav.formMethod === "POST";
 
-  const handleSubmit = () =>
+  const handleSubmit = () => {
     submit(selectedProduct, { replace: true, method: "POST" });
-  //
+  }
+
   /**
    * Map thru the different product object to return an array of object labels and id values for the select
    */
@@ -288,7 +290,9 @@ export default function AdditionalPage() {
       divider
       title="Pre-Purchase product "
       primaryAction={
-        <Button loading={isLoading} primary onClick={handleSubmit}>
+        <Button loading={isLoading} primary onClick={() => {
+          handleSubmit()
+          }}>
           Submit product
         </Button>
       }
