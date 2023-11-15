@@ -14,6 +14,7 @@ export async function loader({ request }) {
   return json({ apiKey: process.env.SHOPIFY_API_KEY });
 }
 
+
 export default function App() {
   const { apiKey } = useLoaderData();
 
@@ -23,7 +24,7 @@ export default function App() {
         <Link to="/app" rel="home">
           Home
         </Link>
-        <Link to="/app/additional">Additional page</Link>
+        {/* <Link to="/app/additional">Additional page</Link> */}
       </ui-nav-menu>
       <Outlet />
     </AppProvider>
