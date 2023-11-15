@@ -10,6 +10,8 @@ import {
   Text,
   VerticalStack,
   useBreakpoints,
+  Toast,
+  Frame
 } from "@shopify/polaris";
 import { useState, useCallback } from "react";
 import { json } from "@remix-run/node";
@@ -206,8 +208,11 @@ export default function AdditionalPage() {
   const [selected, setSelected] = useState("Select a product");
   const [selectedCollection, setSelectedCollection] = useState("Home page");
   const [selectedProduct, setSelectedProduct] = useState(sampledata);
+  const [toastActive, setToastActive] = useState(false);
   const { collections, shop } = useLoaderData();
   const submit = useSubmit();
+
+;const toggleActive = useCallback(() => setToastActive((toastActive) => !toastActive), []);
 
   const filteredCollection = collections.filter(
     (item) => item.title === selectedCollection
@@ -261,7 +266,6 @@ export default function AdditionalPage() {
           const imageUrl = product.images && product.images.nodes && product.images.nodes[0] ? product.images.nodes[0].url : null;
           const variantId = product.variants && product.variants.nodes && product.variants.nodes[0] ? product.variants.nodes[0].id : null;
           const price = product.variants && product.variants.nodes && product.variants.nodes[0] ? product.variants.nodes[0].price : null;
-  
           const prodObj = {
             title: product.title,
             id: product.id,
@@ -286,15 +290,24 @@ export default function AdditionalPage() {
   
 
   return (
+    <Frame>
     <Page
       divider
       title="Pre-Purchase product "
       primaryAction={
+        <>
         <Button loading={isLoading} primary onClick={() => {
           handleSubmit()
-          }}>
+          toggleActive()
+        }}>
           Submit product
-        </Button>
+        </Button> 
+        {
+          toastActive && (
+            <Toast content="Successfully submitted" onDismiss={toggleActive} />
+            )
+        }
+        </>
       }
       secondaryActions={[
         {
@@ -327,12 +340,6 @@ export default function AdditionalPage() {
           </Box>
           <Card roundedAbove="sm">
             <VerticalStack gap="4">
-              {/* <Select
-                label="Select a category"
-                options={collectionOptions}
-                onChange={handleCollectionSelection}
-                value={selectedCollection}
-              /> */}
               <SearchBar 
               options={collectionOptions} 
               onChange={handleCollectionSelection}
@@ -412,6 +419,7 @@ export default function AdditionalPage() {
         </HorizontalGrid>
       </VerticalStack>
     </Page>
+    </Frame>
   );
 
   function extractProductId(productId) {
