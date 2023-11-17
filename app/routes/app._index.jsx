@@ -11,22 +11,19 @@ import {
   VerticalStack,
   useBreakpoints,
   Toast,
-  Frame
+  Frame,
 } from "@shopify/polaris";
 import { useState, useCallback } from "react";
 import { json } from "@remix-run/node";
-import {
-  useLoaderData,
-  useSubmit,
-  useNavigation,
-} from "@remix-run/react";
+import { useLoaderData, useSubmit, useNavigation } from "@remix-run/react";
 import { authenticate } from "../shopify.server";
 import SearchBar from "~/Components/SearchBar";
+import Emptystate from "~/Components/Emptystate";
 
 const sampledata = {
-  title: "Union STR Snowboard Bindings - 2023",
+  title: "Sample Product - Snowboard Bindings",
   description: `
-    EXT thermoformed EVA bushings provide vibration-damping shock absorption 
+    This is a sample description of the snowboard binding: thermoformed EVA bushings provide vibration-damping shock absorption 
     to save your heels while promoting true and even board flex`,
   handle: "union-str-snowboard-bindings-2023",
   image:
@@ -125,13 +122,17 @@ export async function action({ request }) {
               admin: "PUBLIC_READ_WRITE",
               storefront: "PUBLIC_READ",
             },
-            capabilities: { 
-              publishable: { enabled: true }, 
-              translatable: { enabled: true } 
+            capabilities: {
+              publishable: { enabled: true },
+              translatable: { enabled: true },
             },
             fieldDefinitions: [
               { key: "title", name: "Title", type: "single_line_text_field" },
-              { key: "prod_id", name: "Product Id", type: "single_line_text_field" },
+              {
+                key: "prod_id",
+                name: "Product Id",
+                type: "single_line_text_field",
+              },
             ],
           },
         },
@@ -142,16 +143,16 @@ export async function action({ request }) {
   } catch (error) {
     throw new Response(`${error} MUTATION DEFINITION ERROR`, { status: 404 });
   } finally {
-        /**
- * This is used to create meta object mutation that saves the selected product
- * to the shopify app object so we can use it in the UI extension to display
- * in the checkout for pre-purhcase marketing
- */
-  const formData = new URLSearchParams(await request.text());
-  const productTitle = formData.get("title");
-  const productId = formData.get("id");
-  const response = await admin.graphql(
-    `#graphql
+    /**
+     * This is used to create meta object mutation that saves the selected product
+     * to the shopify app object so we can use it in the UI extension to display
+     * in the checkout for pre-purhcase marketing
+     */
+    const formData = new URLSearchParams(await request.text());
+    const productTitle = formData.get("title");
+    const productId = formData.get("id");
+    const response = await admin.graphql(
+      `#graphql
     mutation metaobjectCreate($metaobject: MetaobjectCreateInput!) {
     metaobjectCreate(metaobject: $metaobject) {
             metaobject {
@@ -174,31 +175,31 @@ export async function action({ request }) {
       }
       
     `,
-    {
-      variables: {
-        metaobject: {
-          type: "app_pre_purchase",
-          capabilities: {
-            publishable: {
-              status: "ACTIVE",
+      {
+        variables: {
+          metaobject: {
+            type: "app_pre_purchase",
+            capabilities: {
+              publishable: {
+                status: "ACTIVE",
+              },
             },
+            fields: [
+              {
+                key: "title",
+                value: productTitle,
+              },
+              {
+                key: "prod_id",
+                value: productId,
+              },
+            ],
           },
-          fields: [
-            {
-              key: "title",
-              value: productTitle,
-            },
-            {
-              key: "prod_id",
-              value: productId,
-            },
-          ],
         },
-      },
-    }
-  );
-  const responseJson = await response.json();
-  return responseJson;
+      }
+    );
+    const responseJson = await response.json();
+    return responseJson;
   }
 }
 
@@ -208,29 +209,33 @@ export default function AdditionalPage() {
   const [selected, setSelected] = useState("Select a product");
   const [selectedCollection, setSelectedCollection] = useState("Home page");
   const [selectedProduct, setSelectedProduct] = useState(sampledata);
+  const [isButtonDisabled, setIsButtonDisabled] = useState(true);
   const [toastActive, setToastActive] = useState(false);
   const { collections, shop } = useLoaderData();
   const submit = useSubmit();
 
-;const toggleActive = useCallback(() => setToastActive((toastActive) => !toastActive), []);
+  const toggleActive = useCallback(
+    () => setToastActive((toastActive) => !toastActive),
+    []
+  );
 
   const filteredCollection = collections.filter(
     (item) => item.title === selectedCollection
   );
-  
+
   const collectionOptions = collections.map((item) => {
     return {
       label: item.title,
       value: item.title,
     };
-  })
+  });
 
   const isLoading =
     ["loading", "submitting"].includes(nav.state) && nav.formMethod === "POST";
 
   const handleSubmit = () => {
     submit(selectedProduct, { replace: true, method: "POST" });
-  }
+  };
 
   /**
    * Map thru the different product object to return an array of object labels and id values for the select
@@ -245,27 +250,42 @@ export default function AdditionalPage() {
   const handleCollectionSelection = useCallback(
     async (value) => {
       const val = await value;
-    setSelectedCollection(val)
-  }, [selectedCollection])
+      setSelectedCollection(val);
+    },
+    [selectedCollection]
+  );
 
   const handleSelectChange = useCallback(
     async (value) => {
       try {
         const productId = await value;
         setSelected(productId);
-  
+        setIsButtonDisabled(false);
         const selectProd = filteredCollection[0].products.nodes.filter(
           (item) => item.id === productId
         );
-  
+
         // Check if selectProd has items before attempting to access properties
         if (selectProd.length > 0) {
           const product = selectProd[0];
-  
+
           // Safely access deeper nested properties
-          const imageUrl = product.images && product.images.nodes && product.images.nodes[0] ? product.images.nodes[0].url : null;
-          const variantId = product.variants && product.variants.nodes && product.variants.nodes[0] ? product.variants.nodes[0].id : null;
-          const price = product.variants && product.variants.nodes && product.variants.nodes[0] ? product.variants.nodes[0].price : null;
+          const imageUrl =
+            product.images && product.images.nodes && product.images.nodes[0]
+              ? product.images.nodes[0].url
+              : null;
+          const variantId =
+            product.variants &&
+            product.variants.nodes &&
+            product.variants.nodes[0]
+              ? product.variants.nodes[0].id
+              : null;
+          const price =
+            product.variants &&
+            product.variants.nodes &&
+            product.variants.nodes[0]
+              ? product.variants.nodes[0].price
+              : null;
           const prodObj = {
             title: product.title,
             id: product.id,
@@ -274,9 +294,9 @@ export default function AdditionalPage() {
             handle: product.handle,
             image: imageUrl,
             variantId: variantId,
-            price: price
+            price: price,
           };
-  
+
           setSelectedProduct(prodObj);
         } else {
           console.error("No product found with the given ID:", productId);
@@ -287,138 +307,155 @@ export default function AdditionalPage() {
     },
     [selected, selectedProduct]
   );
-  
 
   return (
     <Frame>
-    <Page
-      divider
-      title="Pre-Purchase product "
-      primaryAction={
-        <>
-        <Button loading={isLoading} primary onClick={() => {
-          handleSubmit()
-          toggleActive()
-        }}>
-          Submit product
-        </Button> 
-        {
-          toastActive && (
-            <Toast content="Successfully submitted" onDismiss={toggleActive} />
-            )
-        }
-        </>
-      }
-      secondaryActions={[
-        {
-          content: "Products dashboard",
-          accessibilityLabel: "This button will take you to products dashboard",
-          target: "_blank",
-          external: true,
-          url: `https://admin.shopify.com/store/${shop}/admin/products/${extractProductId(
-            selectedProduct.id
-          )}`,
-          onAction: () => {},
-        },
-      ]}
-    >
-      <VerticalStack gap={{ xs: "8", sm: "4" }}>
-        <HorizontalGrid columns={{ xs: "1fr", md: "2fr 5fr" }} gap="4">
-          <Box
-            as="section"
-            paddingInlineStart={{ xs: 4, sm: 0 }}
-            paddingInlineEnd={{ xs: 4, sm: 0 }}
-          >
-            <VerticalStack gap="4">
-              <Text as="h3" variant="headingMd">
-                Collections
-              </Text>
-              <Text as="p" variant="bodyMd">
-                Select a category that will be passed in for the product
-              </Text>
-            </VerticalStack>
-          </Box>
-          <Card roundedAbove="sm">
-            <VerticalStack gap="4">
-              <SearchBar 
-              options={collectionOptions} 
-              onChange={handleCollectionSelection}
-              />
-            </VerticalStack>
-          </Card>
-        </HorizontalGrid>
-        {smUp ? <Divider /> : null}
-        <HorizontalGrid columns={{ xs: "1fr", md: "2fr 5fr" }} gap="4">
-          <Box
-            as="section"
-            paddingInlineStart={{ xs: 4, sm: 0 }}
-            paddingInlineEnd={{ xs: 4, sm: 0 }}
-          >
-            <VerticalStack gap="4">
-              <Text as="h3" variant="headingMd">
-                Products
-              </Text>
-              <Text as="p" variant="bodyMd">
-                Select a product that you want to showup on the checkout page
-                under the Pre-sale banner. Whichever product you select here
-                will be displayed on the checkout presale banner.
-              </Text>
-            </VerticalStack>
-          </Box>
-          <Card roundedAbove="sm">
-            <VerticalStack gap="4">
-              <Select
-                label="Select a Product"
-                options={productOptions}
-                onChange={handleSelectChange}
-                value={selected}
-              />
-            </VerticalStack>
-          </Card>
-        </HorizontalGrid>
-        {smUp ? <Divider /> : null}
-        <HorizontalGrid columns={{ xs: "1fr", md: "2fr 5fr" }} gap="4">
-          <Box
-            as="section"
-            paddingInlineStart={{ xs: 4, sm: 0 }}
-            paddingInlineEnd={{ xs: 4, sm: 0 }}
-          >
-            <VerticalStack gap="4">
-              <Text as="h3" variant="headingMd">
-                {`You selected `}
-              </Text>
-            </VerticalStack>
-          </Box>
-          <VerticalStack gap="4">
-            <MediaCard
-              title={selectedProduct?.title}
-              size="medium"
-              primaryAction={{
-                content: "Go to product page",
-                url: `https://shoprunner-checkout-extension-ui.myshopify.com/products/${selectedProduct?.handle}`,
-                target: "_blank",
-                external: true,
-                accessibilityLabel: `${selectedProduct?.title}`,
-                onAction: () => {},
+      <Page
+        divider
+        title="Pre-Purchase product "
+        primaryAction={
+          <>
+            <Button
+              loading={isLoading}
+              disabled={isButtonDisabled}
+              primary
+              onClick={() => {
+                handleSubmit();
+                toggleActive();
               }}
-              description={selectedProduct?.description}
-              popoverActions={[{ content: "Dismiss", onAction: () => {} }]}
             >
-              <img
-                alt=""
-                width="100%"
-                height="100%"
-                style={{
-                  objectFit: "cover",
-                  objectPosition: "fill",
-                }}
-                src={selectedProduct?.image}
+              Submit product
+            </Button>
+            {toastActive && (
+              <Toast
+                content="Successfully submitted"
+                onDismiss={toggleActive}
               />
-            </MediaCard>
-          </VerticalStack>
-        </HorizontalGrid>
-      </VerticalStack>
-    </Page>
+            )}
+          </>
+        }
+        secondaryActions={[
+          {
+            content: "Products dashboard",
+            accessibilityLabel:
+              "This button will take you to products dashboard",
+            target: "_blank",
+            external: true,
+            disabled: isButtonDisabled,
+            url: `https://admin.shopify.com/store/${shop}/admin/products/${extractProductId(
+              selectedProduct.id
+            )}`,
+            onAction: () => {},
+          },
+        ]}
+      >
+        <VerticalStack gap={{ xs: "8", sm: "4" }}>
+          <HorizontalGrid columns={{ xs: "1fr", md: "2fr 5fr" }} gap="4">
+            <Box
+              as="section"
+              paddingInlineStart={{ xs: 4, sm: 0 }}
+              paddingInlineEnd={{ xs: 4, sm: 0 }}
+            >
+              <VerticalStack gap="4">
+                <Text as="h3" variant="headingMd">
+                  Collections
+                </Text>
+                <Text as="p" variant="bodyMd">
+                  Select a category that will be passed in for the product
+                </Text>
+              </VerticalStack>
+            </Box>
+            <Card roundedAbove="sm">
+              <VerticalStack gap="4">
+                <SearchBar
+                  options={collectionOptions}
+                  onChange={handleCollectionSelection}
+                />
+              </VerticalStack>
+            </Card>
+          </HorizontalGrid>
+          {smUp ? <Divider /> : null}
+          {selectedCollection === "Home page" ? (
+            <Emptystate shop={shop} />
+          ) : (
+            <>
+              <HorizontalGrid columns={{ xs: "1fr", md: "2fr 5fr" }} gap="4">
+                <Box
+                  as="section"
+                  paddingInlineStart={{ xs: 4, sm: 0 }}
+                  paddingInlineEnd={{ xs: 4, sm: 0 }}
+                >
+                  <VerticalStack gap="4">
+                    <Text as="h3" variant="headingMd">
+                      Products
+                    </Text>
+                    <Text as="p" variant="bodyMd">
+                      Select a product that you want to showup on the checkout
+                      page under the Pre-sale banner. Whichever product you
+                      select here will be displayed on the checkout presale
+                      banner.
+                    </Text>
+                  </VerticalStack>
+                </Box>
+                <Card roundedAbove="sm">
+                  <VerticalStack gap="4">
+                    <Select
+                      label="Select a Product"
+                      options={productOptions}
+                      onChange={handleSelectChange}
+                      value={selected}
+                    />
+                  </VerticalStack>
+                </Card>
+              </HorizontalGrid>
+              {smUp ? <Divider /> : null}
+              <HorizontalGrid columns={{ xs: "1fr", md: "2fr 5fr" }} gap="4">
+                <Box
+                  as="section"
+                  paddingInlineStart={{ xs: 4, sm: 0 }}
+                  paddingInlineEnd={{ xs: 4, sm: 0 }}
+                >
+                  <VerticalStack gap="4">
+                    <Text as="h3" variant="headingMd">
+                      {`You selected `}
+                    </Text>
+                  </VerticalStack>
+                </Box>
+                <VerticalStack gap="4">
+                  <MediaCard
+                    title={selectedProduct?.title}
+                    size="medium"
+                    primaryAction={{
+                      content: "Go to product page",
+                      url: `https://${shop}.myshopify.com/products/${selectedProduct?.handle}`,
+                      target: "_blank",
+                      external: true,
+                      disabled: isButtonDisabled,
+                      accessibilityLabel: `${selectedProduct?.title}`,
+                      onAction: () => {},
+                    }}
+                    description={selectedProduct?.description}
+                    popoverActions={[
+                      { content: "Dismiss", onAction: () => {} },
+                    ]}
+                  >
+                    <img
+                      alt=""
+                      width="100%"
+                      height="100%"
+                      style={{
+                        objectFit: "cover",
+                        objectPosition: "fill",
+                      }}
+                      src={selectedProduct?.image}
+                    />
+                  </MediaCard>
+                </VerticalStack>
+              </HorizontalGrid>
+            </>
+          )}
+        </VerticalStack>
+      </Page>
     </Frame>
   );
 
