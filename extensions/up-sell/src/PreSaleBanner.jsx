@@ -10,12 +10,7 @@ import {
   Button,
   Divider,
   useApplyCartLinesChange,
-  useCartLines,
-  useTotalAmount,
-  Banner,
-  Link,
-  Modal,
-  Grid,
+  useCartLines
 } from "@shopify/ui-extensions-react/checkout";
 
 export default reactExtension(
