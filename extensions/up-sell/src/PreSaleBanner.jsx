@@ -11,11 +11,6 @@ import {
   Divider,
   useApplyCartLinesChange,
   useCartLines,
-  useTotalAmount,
-  Banner,
-  Link,
-  Modal,
-  Grid,
 } from "@shopify/ui-extensions-react/checkout";
 
 export default reactExtension(
@@ -119,95 +114,6 @@ function Extension() {
     })(selectedProduct);
   }, [selectedProduct]);
 
-  // if (totalCartAmount.amount < 1000) {
-  //   if (hasMatchingId) {
-  //     return (
-  //       <Banner>
-  //         <Text>
-  //           This item already exist click here to choose another item{" "}
-  //         </Text>
-  //         <Link
-  //           overlay={
-  //             <Modal id="my-modal" padding title="Products ">
-  //               <Grid columns={["33.3%", "33.3%", "33.3%"]} spacing="loose">
-  //                 {data?.products?.nodes.map((node) => (
-  //                   <Link
-  //                     to={`https://shoprunner-checkout-extension-ui.myshopify.com/products/${node.handle}`}
-  //                   >
-  //                     <View border="base" padding="base">
-  //                       <View>
-  //                         <Image
-  //                           source={node.images.edges[0].node.url}
-  //                           aspectRatio={1}
-  //                           fit="contain"
-  //                         />
-  //                         <Text>{node.title}</Text>
-
-  //                         <Text emphasis="bold" accessibilityRole="address">
-  //                           $ {node.variants.edges[0].node.price.amount}
-  //                         </Text>
-  //                       </View>
-  //                     </View>
-  //                   </Link>
-  //                 ))}
-  //               </Grid>
-  //               <Button onPress={() => ui.overlay.close("my-modal")}>
-  //                 Close
-  //               </Button>
-  //             </Modal>
-  //           }
-  //         >
-  //           All Products
-  //         </Link>
-  //       </Banner>
-  //     );
-  //   } 
-  //     return (
-  //       <>
-  //         <Banner status="warning">
-  //           <Text size="large">
-  //             {`You are just $${(1000 - totalCartAmount.amount).toFixed(
-  //               2
-  //             )} from getting 80% off pre-selected items `}
-  //           </Text>
-  //               {"   "}
-  //           <Link
-  //             overlay={
-  //               <Modal id="my-modal" padding title="Products ">
-  //                 <Grid columns={["33.3%", "33.3%", "33.3%"]} spacing="loose">
-  //                   {data?.products?.nodes.map((node) => (
-  //                     <Link
-  //                       to={`https://shoprunner-checkout-extension-ui.myshopify.com/products/${node.handle}`}
-  //                     >
-  //                       <View border="base" padding="base">
-  //                         <View>
-  //                           <Image
-  //                             source={node.images.edges[0].node.url}
-  //                             aspectRatio={1}
-  //                             fit="contain"
-  //                           />
-  //                           <Text>{node.title}</Text>
-
-  //                           <Text emphasis="bold" accessibilityRole="address">
-  //                             $ {node.variants.edges[0].node.price.amount}
-  //                           </Text>
-  //                         </View>
-  //                       </View>
-  //                     </Link>
-  //                   ))}
-  //                 </Grid>
-  //                 <Button onPress={() => ui.overlay.close("my-modal")}>
-  //                   Close
-  //                 </Button>
-  //               </Modal>
-  //             }
-  //           >
-  //             All Products
-  //           </Link>
-  //         </Banner>
-  //       </>
-  //     );
-  // } 
     return (
       <>
         {data?.products?.nodes.map(
@@ -229,7 +135,7 @@ function Extension() {
                   <Text>Vendor: {node.vendor} </Text>
                   <Divider size="small" alignment="center" />
                   <Text size="large" emphasis="bold">
-                    $ {node.variants.edges[0].node.price.amount}
+                    $ {node.variants.edges[0].node.price.amount}0
                   </Text>
                 </View>
                 <View border="none" padding="base">

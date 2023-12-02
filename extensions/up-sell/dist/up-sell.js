@@ -19743,7 +19743,8 @@ ${errorInfo.componentStack}`);
                 /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Divider2, { size: "small", alignment: "center" }),
                 /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)(Text2, { size: "large", emphasis: "bold", children: [
                   "$ ",
-                  node.variants.edges[0].node.price.amount
+                  node.variants.edges[0].node.price.amount,
+                  "0"
                 ] })
               ] }),
               /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(View2, { border: "none", padding: "base", children: /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Button2, { onPress: () => handdleProductAdded(node), children: "Add" }) })

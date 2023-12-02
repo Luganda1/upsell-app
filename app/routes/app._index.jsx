@@ -13,10 +13,11 @@ import {
   Toast,
   Frame,
 } from "@shopify/polaris";
+import {extractProductId} from "../util/helper"
 import { useState, useCallback } from "react";
 import { json } from "@remix-run/node";
 import { useLoaderData, useSubmit, useNavigation } from "@remix-run/react";
-import { authenticate } from "../shopify.server";
+import { authenticate, sessionStorage } from "../shopify.server";
 import SearchBar from "~/Components/SearchBar";
 import Emptystate from "~/Components/Emptystate";
 
@@ -27,7 +28,7 @@ const sampledata = {
     to save your heels while promoting true and even board flex`,
   handle: "union-str-snowboard-bindings-2023",
   image:
-    "https://shoprunner-checkout-extension-ui.myshopify.com/cdn/shop/files/1.png?v=1694730980&width=990",
+    "https://shoprunner-checkout-extension-ui.myshopify.com/cdn/shop/files/1.png?v=1694730980&width=500",
   price: 140,
   id: "gid://shopify/Product/8569393873173",
 };
@@ -55,11 +56,14 @@ export const loader = async ({ request }) => {
               vendor
               title
               description(truncateAt: 250)
-              images(first: 2) {
-                nodes {
-                  url
-                }
-              }
+              images(first:1) {
+            nodes {
+              url(transform: {
+                maxWidth: 500
+                maxHeight: 300
+              })
+            }
+          }
               variants(first: 4) {
                 nodes {
                   id
@@ -87,7 +91,7 @@ export const loader = async ({ request }) => {
 };
 
 export async function action({ request }) {
-  const { admin } = await authenticate.admin(request);
+  const { admin, session } = await authenticate.admin(request);
   try {
     /**
      * we are creating Metaobject mutation definition using a custom namespace that
@@ -459,8 +463,4 @@ export default function AdditionalPage() {
     </Frame>
   );
 
-  function extractProductId(productId) {
-    const match = productId.match(/(\d+)$/);
-    return match ? match[1] : "";
-  }
 }
