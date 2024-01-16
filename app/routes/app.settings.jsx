@@ -3,14 +3,26 @@ import {
     Frame,
     } from '@shopify/polaris';
 import DeliveryCheckbox from "../Components/DeliveryCheckbox"
-import {useState, useCallback, useEffect} from 'react';
+import {useState, useCallback} from 'react';
 import BannerEditor from "../Components/BannerEditor"
 import { authenticate } from '~/shopify.server';
 import { useLoaderData, useSubmit, useNavigation } from "@remix-run/react";
+import { createCookieSessionStorage, json } from '@remix-run/node';
 
+export async function loader({ request }) {
+    // Handling persistant state with cookie session
+        const sessionStore =  request.headers.get("cookie")
+        let storage =  createCookieSessionStorage({
+        cookie: {
+            name: "current-user-settings"
+        }
+        })
+        const  cookieSession = await storage.getSession(sessionStore)
+    return json({ cookieSession });
+    }
 
 export async function action({ request }) {
-const { admin, session } = await authenticate.admin(request);
+const { admin } = await authenticate.admin(request);
 try {
     /**
      */
@@ -32,28 +44,34 @@ try {
         }
     }
     `,
-    {
+        {
         variables: {
-        input: {
+            input: {
             type: "app_pre_purchase_settings",
             name: "$app:pre_purchase_settings",
-            displayNameKey: "title",
+            displayNameKey: "d_instructions",
             access: {
-            admin: "PUBLIC_READ_WRITE",
-            storefront: "PUBLIC_READ",
+                admin: "PUBLIC_READ_WRITE",
+                storefront: "PUBLIC_READ",
             },
             capabilities: {
-            publishable: { enabled: true },
-            translatable: { enabled: true },
+                publishable: { enabled: true },
+                translatable: { enabled: true },
             },
             fieldDefinitions: [
+                { key: "title", name: "Title", type: "single_line_text_field" },
+                {
+                key: "prod_id",
+                name: "Product Id",
+                type: "single_line_text_field",
+                },
                 { key: "d_instructions", name: "Delievery instructions", type: "boolean" },
                 { key: "banner_title", name: "Banner title", type: "single_line_text_field" },
                 { key: "json_data", name: "Other JSON Data", type: "json" }
             ],
+            },
         },
-        },
-    }
+        }
     );
     const metaobjectDefResponse = await metaobjectDef.json();
     return metaobjectDefResponse;
@@ -66,8 +84,11 @@ try {
      * in the checkout for pre-purhcase marketing
      */
     const formData = new URLSearchParams(await request.text());
-    const bannerTitle = formData.get("bannerTitle");
-    const deliveryCheckbox = formData.get("deliveryCheckbox");
+    const userSettings = {
+        bannerTitle: formData.get("title"),
+        deliveryCheckbox: formData.get("deliveryCheckbox"),
+    }
+    //creating the userSetting metaobject
     const response = await admin.graphql(
     `#graphql
     mutation metaobjectCreate($metaobject: MetaobjectCreateInput!) {
@@ -105,29 +126,48 @@ try {
             fields: [
                 {
                     key: "banner_title",
-                    value: "This is the new banner title"
+                    value: userSettings.bannerTitle
                     },
                 {
                     key: "d_instructions",
-                    value: "false"
+                    value: userSettings.deliveryCheckbox
                     }
             ],
         },
         },
     }
     );
-
+    // Saving the data in the cookie session 
+    if(request.method === "POST") {
+        let storage =  createCookieSessionStorage({
+            cookie: {
+            name: "current-user-settings"
+            }
+        })
+        let  cookieSession = await storage.getSession()
+        cookieSession.set("userSettings", userSettings)
+        
+        return new Response("", {
+            headers: {
+            "Set-Cookie": `${await storage.commitSession(cookieSession)}; Secure; Path=/; HttpOnly; SameSite=none`,
+            },
+        });
+    }
     const responseJson = await response.json();
-    return responseJson;
+
+    return json({
+        responseJson
+    })
 }
 }
 
 export default function Settings() {
-    const initialState = loadSettings()
+    const { cookieSession } = useLoaderData();
+    const initialState = cookieSession?.data?.userSettings;
     const initialchecked = initialState?.deliveryCheckbox ?? false;
     const initialTitle = initialState?.bannerTitle ?? ""; 
     const [checked, setChecked] = useState(initialchecked);
-    const [bannerTitle, setBannerTitle] = useState("");
+    const [bannerTitle, setBannerTitle] = useState(initialTitle);
     const nav = useNavigation()
     const submit = useSubmit()
 
@@ -137,31 +177,19 @@ export default function Settings() {
     );
     const handleTitleChange = useCallback((value) => setBannerTitle(value), []);
 
+    //handling submsion and loading state 
     const isLoading =
     ["loading", "submitting"].includes(nav.state) && nav.formMethod === "POST";
 
-    useEffect(() => {
-        //Saving current user settings into our local Storage for persistant state
-        const userSettings = {
-            bannerTitle,
-            deliveryCheckbox: checked,
-        };
-        return () => {
-            saveSettings(userSettings)
-        }
-
-    }, [checked, bannerTitle])
-
-    
+    // submitting to the user setting mutation we created up 
     const handleSubmit = () => {
         const submitData = {
-            bannerTitle ,
+            title: bannerTitle ,
             deliveryCheckbox: checked
         }
         submit(submitData, { replace: true, method: "POST" });
         };
     
-
     return (
         <Frame>
             <Page
@@ -186,14 +214,3 @@ export default function Settings() {
     );
 }
 
-
-// Function to save state to Local Storage
-function saveSettings(preferences) {
-localStorage.setItem('userSettings', JSON.stringify(preferences));
-}
-
-//Retrieve saved state
-function loadSettings() {
-const savedPreferences = localStorage.getItem('userSettings');
-return savedPreferences ? JSON.parse(savedPreferences) : null;
-}

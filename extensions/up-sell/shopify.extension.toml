@@ -47,9 +47,9 @@ api_access = true
 # [[extensions.metafields]]
 # namespace = "my_namespace"
 # key = "my_key"
-# [[extensions.metafields]]
-# namespace = "my_namespace"
-# key = "my_other_key"
+[[extensions.metafields]]
+namespace = "upsell_delivery_instructions"
+key = "is_delivery_instructions_checked"
 
 # Defines settings that will be collected from merchants installing
 # your extension. Learn more:

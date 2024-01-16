@@ -5,6 +5,7 @@ import {
   shopifyApp,
   LATEST_API_VERSION,
 } from "@shopify/shopify-app-remix/server";
+import { createCookie } from "@remix-run/node";
 import { PrismaSessionStorage } from "@shopify/shopify-app-session-storage-prisma";
 import { restResources } from "@shopify/shopify-api/rest/admin/2023-07";
 
@@ -44,3 +45,11 @@ export const unauthenticated = shopify.unauthenticated;
 export const login = shopify.login;
 export const registerWebhooks = shopify.registerWebhooks;
 export const sessionStorage = shopify.sessionStorage;
+export function createCustomCookie(name, options = {}) {
+  return createCookie(name, {
+    path: "/",
+    httpOnly: false,
+    sameSite: "none",
+    ...options
+  });
+}

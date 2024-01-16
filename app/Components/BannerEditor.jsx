@@ -9,13 +9,9 @@ import {
     } from '@shopify/polaris';
 import {useState, useCallback} from 'react';
 
-
-
-
 export default function DeliveryCheckbox({bannerTitle, initialTitle, isLoading, handleSubmit, handleTitleChange}) {
     const [toastActive, setToastActive] = useState(false);
     // const [currentTitle, setCurrentTitle] = useState(initialTitle)
-
     // const submit = useSubmit();
     //Toast will trigger popup if the submit button is clicked 
     const toggleActive = useCallback(
@@ -104,3 +100,7 @@ json_data: field(key: "json_data") { value }
     }
   ]
  */
+
+
+    // const dataJson = [{id:1,name:"Item One",category:"Electronics",price:299.99,inStock:true}];
+    // const stringifiedData = JSON.stringify(dataJson);

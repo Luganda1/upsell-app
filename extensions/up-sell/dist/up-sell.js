@@ -1161,7 +1161,7 @@
             var dispatcher = resolveDispatcher();
             return dispatcher.useCallback(callback, deps);
           }
-          function useMemo2(create, deps) {
+          function useMemo4(create, deps) {
             var dispatcher = resolveDispatcher();
             return dispatcher.useMemo(create, deps);
           }
@@ -1932,7 +1932,7 @@
           exports.useImperativeHandle = useImperativeHandle;
           exports.useInsertionEffect = useInsertionEffect;
           exports.useLayoutEffect = useLayoutEffect;
-          exports.useMemo = useMemo2;
+          exports.useMemo = useMemo4;
           exports.useReducer = useReducer;
           exports.useRef = useRef2;
           exports.useState = useState4;
@@ -19555,6 +19555,49 @@ ${errorInfo.componentStack}`);
     return subscription.current;
   }
 
+  // node_modules/@shopify/ui-extensions-react/build/esm/surfaces/checkout/hooks/metafields.mjs
+  var import_react19 = __toESM(require_react(), 1);
+  function useMetafields(filters) {
+    const metaFields = useSubscription(useApi().metafields);
+    return (0, import_react19.useMemo)(() => {
+      if (filters) {
+        const {
+          namespace,
+          key
+        } = filters;
+        if (!namespace) {
+          throw new CheckoutUIExtensionError("You must pass in a namespace with a key");
+        }
+        const filteredResults = metaFields.filter((metafield) => metafield.namespace === namespace && (!key || metafield.key === key));
+        return filteredResults;
+      }
+      return metaFields;
+    }, [filters, metaFields]);
+  }
+  function useApplyMetafieldsChange() {
+    const api = useApi();
+    if ("applyMetafieldChange" in api) {
+      return api.applyMetafieldChange;
+    }
+    throw new ExtensionHasNoMethodError("applyMetafieldChange", api.extension.target);
+  }
+
+  // node_modules/@shopify/ui-extensions-react/build/esm/surfaces/checkout/hooks/metafield.mjs
+  function useMetafield(filters) {
+    const {
+      namespace,
+      key
+    } = filters;
+    if (!namespace || !key) {
+      throw new CheckoutUIExtensionError("You must pass in both a namespace and key");
+    }
+    const metafields = useMetafields({
+      namespace,
+      key
+    });
+    return metafields.length ? metafields[0] : void 0;
+  }
+
   // node_modules/@shopify/ui-extensions-react/build/esm/surfaces/checkout/hooks/note.mjs
   function useNote() {
     return useSubscription(useApi().note);
@@ -19568,12 +19611,6 @@ ${errorInfo.componentStack}`);
   }
 
   // node_modules/@shopify/ui-extensions-react/build/esm/surfaces/checkout/hooks/cart-lines.mjs
-  function useCartLines() {
-    const {
-      lines
-    } = useApi();
-    return useSubscription(lines);
-  }
   function useApplyCartLinesChange() {
     const api = useApi();
     if ("applyCartLinesChange" in api) {
@@ -19582,18 +19619,46 @@ ${errorInfo.componentStack}`);
     throw new ExtensionHasNoMethodError("applyCartLinesChange", api.extension.target);
   }
 
+  // node_modules/@shopify/ui-extensions-react/build/esm/surfaces/checkout/hooks/app-metafields.mjs
+  var import_react20 = __toESM(require_react(), 1);
+  function useAppMetafields(filters = {}) {
+    const appMetafields = useSubscription(useApi().appMetafields);
+    return (0, import_react20.useMemo)(() => {
+      if (filters.key && !filters.namespace) {
+        throw new CheckoutUIExtensionError("You must pass in a namespace with a key");
+      }
+      const filterKeys = Object.keys(filters);
+      if (filterKeys.length) {
+        return appMetafields.filter((app) => {
+          return filterKeys.every((key) => {
+            if (key === "id" || key === "type") {
+              return app.target[key] === filters[key];
+            }
+            return app.metafield[key] === filters[key];
+          });
+        });
+      }
+      return appMetafields;
+    }, [filters, appMetafields]);
+  }
+
   // extensions/up-sell/src/Checkout.jsx
-  var import_react19 = __toESM(require_react());
+  var import_react21 = __toESM(require_react());
   var import_jsx_runtime4 = __toESM(require_jsx_runtime());
   var Checkout_default = reactExtension(
     "purchase.checkout.shipping-option-item.details.render",
     () => /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(Extension, {})
   );
   function Extension() {
-    const { deliveryGroups } = useApi();
-    const [shippingAccountInfo, setShippingAccountInfo] = (0, import_react19.useState)("");
-    const [selectedDeliveryOption, setSelectedDeliveryOption] = (0, import_react19.useState)(null);
-    (0, import_react19.useEffect)(() => {
+    const { deliveryGroups, query } = useApi();
+    const d_instructions = useMetafield({
+      namespace: "upsell_delivery_instructions",
+      key: "is_delivery_instructions_checked"
+    });
+    const noteApi = useApplyNoteChange();
+    const [shippingAccountInfo, setShippingAccountInfo] = (0, import_react21.useState)("");
+    const [selectedDeliveryOption, setSelectedDeliveryOption] = (0, import_react21.useState)(null);
+    (0, import_react21.useEffect)(() => {
       const getAccountInfo = () => __async(this, null, function* () {
         var _a;
         if (deliveryGroups && (deliveryGroups == null ? void 0 : deliveryGroups.current) && ((_a = deliveryGroups == null ? void 0 : deliveryGroups.current) == null ? void 0 : _a.length) > 0) {
@@ -19603,11 +19668,13 @@ ${errorInfo.componentStack}`);
       });
       getAccountInfo();
     }, [deliveryGroups]);
+    console.log("====================================");
+    console.log(d_instructions, "Delievery instruction metafield");
+    console.log("====================================");
     const handleShippingChange = (val) => {
       setShippingAccountInfo(val);
     };
-    const noteApi = useApplyNoteChange();
-    (0, import_react19.useEffect)(() => {
+    (0, import_react21.useEffect)(() => {
       if (shippingAccountInfo) {
         const applyNote = () => __async(this, null, function* () {
           yield noteApi({
@@ -19630,7 +19697,7 @@ ${errorInfo.componentStack}`);
   }
 
   // extensions/up-sell/src/PreSaleBanner.jsx
-  var import_react20 = __toESM(require_react());
+  var import_react22 = __toESM(require_react());
   var import_jsx_runtime5 = __toESM(require_jsx_runtime());
   var PreSaleBanner_default = reactExtension(
     "purchase.checkout.cart-line-list.render-after",
@@ -19638,15 +19705,23 @@ ${errorInfo.componentStack}`);
   );
   function Extension2() {
     var _a;
-    const [data, setData] = (0, import_react20.useState)();
+    const [data, setData] = (0, import_react22.useState)();
+    const initialId = "gid://shopify/Product/8569393873173";
+    const initialBannerTitle = "You may also like ";
     const { query } = useApi();
+    const AppMetafieldFilters = useAppMetafields({
+      id: "[secret]",
+      type: "shop",
+      namespace: "upsell_delivery_instructions",
+      key: "is_delivery_instructions_checked"
+    });
     const CartLineAddChange = useApplyCartLinesChange();
-    const cartLineItems = useCartLines();
-    const [selectedProduct, setSelectedProduct] = (0, import_react20.useState)();
-    const [prePurchaseId, setPrePurchaseId] = (0, import_react20.useState)(
-      "gid://shopify/Product/8569393873173"
-    );
-    (0, import_react20.useEffect)(() => {
+    const DeliveryInstructionsMetafieldUpdated = useApplyMetafieldsChange();
+    const [deliveryInstructions, setDeliveryInstructions] = (0, import_react22.useState)("false");
+    const [selectedProduct, setSelectedProduct] = (0, import_react22.useState)();
+    const [prePurchaseId, setPrePurchaseId] = (0, import_react22.useState)(initialId);
+    const [bannerTitle, setBannerTitle] = (0, import_react22.useState)(initialBannerTitle);
+    (0, import_react22.useEffect)(() => {
       query(
         `query ($first: Int!) {
       products(first: $first) {
@@ -19682,7 +19757,7 @@ ${errorInfo.componentStack}`);
         }
       ).then(({ data: data2 }) => setData(data2)).catch((error) => error.message);
     }, [query]);
-    (0, import_react20.useEffect)(() => {
+    (0, import_react22.useEffect)(() => {
       query(`
   query {
     metaobjects(type: "app_pre_purchase", first: 250) {
@@ -19697,6 +19772,28 @@ ${errorInfo.componentStack}`);
   }
   `).then(({ data: data2 }) => setSelectedProduct(data2)).catch((error) => error.message);
     }, [query]);
+    (0, import_react22.useEffect)(() => {
+      query(`
+      query {
+        metaobjects(type: "app_pre_purchase_settings", first: 250) {
+          nodes {
+            handle
+            type
+            updatedAt
+            banner_title: field(key: "banner_title") { value }
+            d_instructions: field(key: "d_instructions") { value }
+          }
+        }
+      }
+      `).then(({ data: data2 }) => {
+        var _a2, _b;
+        const title = (_a2 = data2.metaobjects) == null ? void 0 : _a2.nodes[0].banner_title.value;
+        const delivery_instructions = (_b = data2.metaobjects) == null ? void 0 : _b.nodes[0].d_instructions.value;
+        setBannerTitle(title);
+        setDeliveryInstructions(delivery_instructions);
+        return;
+      }).catch((error) => error.message);
+    }, [query]);
     const handdleProductAdded = (node) => __async(this, null, function* () {
       const productVariantId = extractLastNumbers(node.variants.edges[0].node.id);
       yield CartLineAddChange({
@@ -19706,7 +19803,21 @@ ${errorInfo.componentStack}`);
         attributes: [{ key: "Vendor", value: `${node.vendor}` }]
       });
     });
-    (0, import_react20.useEffect)(() => {
+    (() => __async(this, null, function* () {
+      yield DeliveryInstructionsMetafieldUpdated({
+        type: "updateMetafield",
+        key: "is_delivery_instructions_checked",
+        namespace: "upsell_delivery_instructions",
+        value: deliveryInstructions,
+        valueType: "string"
+      });
+    }))();
+    console.log("====================================");
+    console.log(deliveryInstructions, "Delivery Instruction");
+    console.log(bannerTitle);
+    console.log(AppMetafieldFilters);
+    console.log("====================================");
+    (0, import_react22.useEffect)(() => {
       (function returnSelectedProductId(data2) {
         return __async(this, null, function* () {
           var _a2;
@@ -19721,7 +19832,7 @@ ${errorInfo.componentStack}`);
     }, [selectedProduct]);
     return /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(import_jsx_runtime5.Fragment, { children: (_a = data == null ? void 0 : data.products) == null ? void 0 : _a.nodes.map(
       (node) => node.id === prePurchaseId && /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)(import_jsx_runtime5.Fragment, { children: [
-        /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Heading2, { level: 2, inlineAlignment: "start", children: "You may also like " }),
+        /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Heading2, { level: 2, inlineAlignment: "start", children: bannerTitle }),
         /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)(
           InlineLayout2,
           {
