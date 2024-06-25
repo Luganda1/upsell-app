@@ -243,11 +243,11 @@ export default function AdditionalPage() {
     description:
       currentSession?.description ??
       `
-      This is a sample description of the snowboard binding: thermoformed EVA bushings provide vibration-damping`,
+      Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.`,
     handle: "union-str-snowboard-bindings-2023",
     image:
       currentSession?.image ??
-      "https://shoprunner-checkout-extension-ui.myshopify.com/cdn/shop/files/1.png?v=1694730980&width=500",
+      "https://cdn.shopify.com/s/files/1/0853/3816/1464/files/sneakers.png?v=1719350325",
     price: currentSession?.price ?? 140,
     id: currentSession?.id ?? "gid://shopify/Product/8569393873173",
   };
