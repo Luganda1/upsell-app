@@ -3,6 +3,7 @@ import {
   reactExtension,
   useApplyNoteChange,
   TextField,
+  useMetafield,
 } from '@shopify/ui-extensions-react/checkout';
 import { useEffect, useState } from 'react';
 
@@ -13,7 +14,12 @@ export default reactExtension(
 
 
 function Extension() {
-const { deliveryGroups } = useApi();
+const { deliveryGroups, query } = useApi();
+const d_instructions =  useMetafield({
+  namespace: "upsell_delivery_instructions",
+  key: "is_delivery_instructions_checked",
+})
+const noteApi = useApplyNoteChange()
 const [shippingAccountInfo, setShippingAccountInfo] = useState("");
 const [selectedDeliveryOption, setSelectedDeliveryOption] = useState(null);
 
@@ -33,17 +39,13 @@ useEffect(() => {
   getAccountInfo()
 }, [deliveryGroups]);
 
-// console.log('====================================');
-// console.log(deliveryGroups, "Deliery Group ")
-// console.log(selectedDeliveryOption, "selected Delivery OPtion")
-// console.log('====================================');
-
-// Capturing the data changes in the Textfield 
+console.log('====================================');
+console.log(d_instructions, "Delievery instruction metafield");
+console.log('====================================');
 const handleShippingChange = (val) => {
   setShippingAccountInfo(val);
 };
 
-const noteApi = useApplyNoteChange()
 
 useEffect(() => {
   if (shippingAccountInfo) {
@@ -58,16 +60,17 @@ useEffect(() => {
   }
 }, [shippingAccountInfo])
 
-
-
 return (
   <>
+  {/* {
+  includeDeliveryInstructions && */}
     <TextField
       label="Delivery Instruction: Do we need a security code or call box number?"
       name="delivery-instruction"
       value={shippingAccountInfo}
       onChange={(str) => handleShippingChange(str)}
     />
+  {/* } */}
   </>
 );
 }

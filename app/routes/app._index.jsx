@@ -13,24 +13,13 @@ import {
   Toast,
   Frame,
 } from "@shopify/polaris";
+import { extractProductId } from "../util/helper";
 import { useState, useCallback } from "react";
-import { json } from "@remix-run/node";
+import { createCookieSessionStorage, json } from "@remix-run/node";
 import { useLoaderData, useSubmit, useNavigation } from "@remix-run/react";
 import { authenticate } from "../shopify.server";
 import SearchBar from "~/Components/SearchBar";
 import Emptystate from "~/Components/Emptystate";
-
-const sampledata = {
-  title: "Sample Product - Snowboard Bindings",
-  description: `
-    This is a sample description of the snowboard binding: thermoformed EVA bushings provide vibration-damping shock absorption 
-    to save your heels while promoting true and even board flex`,
-  handle: "union-str-snowboard-bindings-2023",
-  image:
-    "https://shoprunner-checkout-extension-ui.myshopify.com/cdn/shop/files/1.png?v=1694730980&width=990",
-  price: 140,
-  id: "gid://shopify/Product/8569393873173",
-};
 
 /**
  * This uses the loader function to query the admin API for all the collections
@@ -39,6 +28,13 @@ const sampledata = {
  */
 export const loader = async ({ request }) => {
   const { admin, session } = await authenticate.admin(request);
+  const sessionStore = request.headers.get("cookie");
+  let storage = createCookieSessionStorage({
+    cookie: {
+      name: "current-user-session",
+    },
+  });
+  const cookieSession = await storage.getSession(sessionStore);
 
   const response = await admin.graphql(
     `#graphql
@@ -48,19 +44,22 @@ export const loader = async ({ request }) => {
           id
           handle
           title
-          products(first: 10) {
+          products(first: 8) {
             nodes {
               handle
               id
               vendor
               title
-              description(truncateAt: 250)
-              images(first: 2) {
-                nodes {
-                  url
-                }
-              }
-              variants(first: 4) {
+              description(truncateAt: 200)
+              images(first:1) {
+            nodes {
+              url(transform: {
+                maxWidth: 500
+                maxHeight: 300
+              })
+            }
+          }
+              variants(first: 3) {
                 nodes {
                   id
                   title
@@ -74,7 +73,7 @@ export const loader = async ({ request }) => {
     }
     `,
     {
-      variables: { first: 8 },
+      variables: { first: 5 },
     }
   );
 
@@ -83,11 +82,13 @@ export const loader = async ({ request }) => {
   return json({
     collections: responseJson.data?.collections?.nodes,
     shop: session.shop.replace(".myshopify.com", ""),
+    storeSession: cookieSession,
   });
 };
 
 export async function action({ request }) {
   const { admin } = await authenticate.admin(request);
+
   try {
     /**
      * we are creating Metaobject mutation definition using a custom namespace that
@@ -149,8 +150,18 @@ export async function action({ request }) {
      * in the checkout for pre-purhcase marketing
      */
     const formData = new URLSearchParams(await request.text());
-    const productTitle = formData.get("title");
-    const productId = formData.get("id");
+
+    const userChoice = {
+      product: formData.get("product"),
+      collection: formData.get("category"),
+      title: formData.get("title"),
+      id: formData.get("id"),
+      vendor: formData.get("vendor"),
+      description: formData.get("description"),
+      image: formData.get("image"),
+      variantId: formData.get("variantId"),
+      price: formData.get("price"),
+    };
     const response = await admin.graphql(
       `#graphql
     mutation metaobjectCreate($metaobject: MetaobjectCreateInput!) {
@@ -187,31 +198,67 @@ export async function action({ request }) {
             fields: [
               {
                 key: "title",
-                value: productTitle,
+                value: userChoice.title,
               },
               {
                 key: "prod_id",
-                value: productId,
+                value: userChoice.id,
               },
             ],
           },
         },
       }
     );
+    // check the request method if its POST
+    if (request.method === "POST") {
+      let storage = createCookieSessionStorage({
+        cookie: {
+          name: "current-user-session",
+        },
+      });
+      let cookieSession = await storage.getSession();
+      cookieSession.set("userChoice", userChoice);
+
+      return new Response("", {
+        headers: {
+          "Set-Cookie": `${await storage.commitSession(
+            cookieSession
+          )}; Secure; Path=/; HttpOnly; SameSite=none`,
+        },
+      });
+    }
     const responseJson = await response.json();
-    return responseJson;
+    return json({ responseJson });
   }
 }
 
 export default function AdditionalPage() {
   const { smUp } = useBreakpoints();
+  const { collections, shop, storeSession } = useLoaderData();
+  let currentSession = storeSession?.data?.userChoice;
+  const initialCollection = currentSession?.collection ?? "Home page";
+  const initialProduct = currentSession?.title ?? "Select a product";
+  const sampledata = {
+    title: currentSession?.title ?? "Sample Product ",
+    description:
+      currentSession?.description ??
+      `
+      Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.`,
+    handle: "union-str-snowboard-bindings-2023",
+    image:
+      currentSession?.image ??
+      "https://cdn.shopify.com/s/files/1/0853/3816/1464/files/sneakers.png?v=1719350325",
+    price: currentSession?.price ?? 140,
+    id: currentSession?.id ?? "gid://shopify/Product/8569393873173",
+  };
+
   const nav = useNavigation();
-  const [selected, setSelected] = useState("Select a product");
-  const [selectedCollection, setSelectedCollection] = useState("Home page");
+  const [selected, setSelected] = useState(initialProduct);
+  const [selectedCollection, setSelectedCollection] =
+    useState(initialCollection);
   const [selectedProduct, setSelectedProduct] = useState(sampledata);
   const [isButtonDisabled, setIsButtonDisabled] = useState(true);
   const [toastActive, setToastActive] = useState(false);
-  const { collections, shop } = useLoaderData();
   const submit = useSubmit();
 
   const toggleActive = useCallback(
@@ -234,7 +281,18 @@ export default function AdditionalPage() {
     ["loading", "submitting"].includes(nav.state) && nav.formMethod === "POST";
 
   const handleSubmit = () => {
-    submit(selectedProduct, { replace: true, method: "POST" });
+    const submittedData = {
+      category: selectedCollection,
+      product: selected,
+      title: selectedProduct.title,
+      id: selectedProduct.id,
+      vendor: selectedProduct.vendor,
+      description: selectedProduct.description,
+      image: selectedProduct.image,
+      variantId: selectedProduct.variantId,
+      price: selectedProduct.price,
+    };
+    submit(submittedData, { replace: true, method: "POST" });
   };
 
   /**
@@ -458,9 +516,4 @@ export default function AdditionalPage() {
       </Page>
     </Frame>
   );
-
-  function extractProductId(productId) {
-    const match = productId.match(/(\d+)$/);
-    return match ? match[1] : "";
-  }
 }

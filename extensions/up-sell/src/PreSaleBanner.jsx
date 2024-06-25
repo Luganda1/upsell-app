@@ -10,13 +10,10 @@ import {
   Button,
   Divider,
   useApplyCartLinesChange,
-  useCartLines,
-  useTotalAmount,
-  Banner,
-  Link,
-  Modal,
-  Grid,
+  useApplyMetafieldsChange,
+  useAppMetafields,
 } from "@shopify/ui-extensions-react/checkout";
+
 
 export default reactExtension(
   "purchase.checkout.cart-line-list.render-after",
@@ -25,13 +22,22 @@ export default reactExtension(
 
 function Extension() {
   const [data, setData] = useState();
+  const initialId = "gid://shopify/Product/8569393873173"
+  const initialBannerTitle = "You may also like ";
   const { query } = useApi();
+  const AppMetafieldFilters = useAppMetafields({
+    id: "[secret]",
+    type: "shop",
+    namespace: "upsell_delivery_instructions",
+    key: "is_delivery_instructions_checked",
+  })
   const CartLineAddChange = useApplyCartLinesChange();
-  const cartLineItems = useCartLines();
+  const DeliveryInstructionsMetafieldUpdated = useApplyMetafieldsChange()
+  const [deliveryInstructions, setDeliveryInstructions] = useState("false")
   const [selectedProduct, setSelectedProduct] = useState();
-  const [prePurchaseId, setPrePurchaseId] = useState(
-    "gid://shopify/Product/8569393873173"
-  );
+  const [prePurchaseId, setPrePurchaseId] = useState(initialId);
+  const [bannerTitle, setBannerTitle] = useState(initialBannerTitle)
+
   useEffect(() => {
     query(
       `query ($first: Int!) {
@@ -71,6 +77,7 @@ function Extension() {
       .catch((error) => error.message);
   }, [query]);
 
+  //Getting the mechant selected product from the admin dashboard
   useEffect(() => {
     query(`
   query {
@@ -89,6 +96,30 @@ function Extension() {
       .catch((error) => error.message);
   }, [query]);
 
+  //Getting the mechant settings to change the banner title from the admin dashboard
+  useEffect(() => {
+    query(`
+      query {
+        metaobjects(type: "app_pre_purchase_settings", first: 250) {
+          nodes {
+            handle
+            type
+            updatedAt
+            banner_title: field(key: "banner_title") { value }
+            d_instructions: field(key: "d_instructions") { value }
+          }
+        }
+      }
+      `)
+      .then(({ data }) => {
+        const title = data.metaobjects?.nodes[0].banner_title.value
+        const delivery_instructions = data.metaobjects?.nodes[0].d_instructions.value
+        setBannerTitle(title)
+        setDeliveryInstructions(delivery_instructions)
+        return
+      })
+      .catch((error) => error.message);
+  }, [query]);
 
   // It handles all the logic for adding the product to cart
   const handdleProductAdded = async (node) => {
@@ -101,11 +132,21 @@ function Extension() {
     });
   };
 
-  // const hasMatchingId = cartLineItems.some(
-  //   (item) =>
-  //     item.merchandise.id === "gid://shopify/ProductVariant/46322009702677"
-  // );
-
+  // This will update the delivery metafield and then will be able to use it on the other checkout page
+  (async() => {
+    await DeliveryInstructionsMetafieldUpdated({
+      type: "updateMetafield",
+      key: "is_delivery_instructions_checked",
+      namespace: "upsell_delivery_instructions",
+      value: deliveryInstructions,
+      valueType: "string"
+    })
+  })()
+console.log('====================================');
+console.log(deliveryInstructions, "Delivery Instruction");
+console.log(bannerTitle)
+console.log(AppMetafieldFilters)
+console.log('====================================');
   useEffect(() => {
     (async function returnSelectedProductId(data) {
       const newData = await data;
@@ -119,102 +160,13 @@ function Extension() {
     })(selectedProduct);
   }, [selectedProduct]);
 
-  // if (totalCartAmount.amount < 1000) {
-  //   if (hasMatchingId) {
-  //     return (
-  //       <Banner>
-  //         <Text>
-  //           This item already exist click here to choose another item{" "}
-  //         </Text>
-  //         <Link
-  //           overlay={
-  //             <Modal id="my-modal" padding title="Products ">
-  //               <Grid columns={["33.3%", "33.3%", "33.3%"]} spacing="loose">
-  //                 {data?.products?.nodes.map((node) => (
-  //                   <Link
-  //                     to={`https://shoprunner-checkout-extension-ui.myshopify.com/products/${node.handle}`}
-  //                   >
-  //                     <View border="base" padding="base">
-  //                       <View>
-  //                         <Image
-  //                           source={node.images.edges[0].node.url}
-  //                           aspectRatio={1}
-  //                           fit="contain"
-  //                         />
-  //                         <Text>{node.title}</Text>
-
-  //                         <Text emphasis="bold" accessibilityRole="address">
-  //                           $ {node.variants.edges[0].node.price.amount}
-  //                         </Text>
-  //                       </View>
-  //                     </View>
-  //                   </Link>
-  //                 ))}
-  //               </Grid>
-  //               <Button onPress={() => ui.overlay.close("my-modal")}>
-  //                 Close
-  //               </Button>
-  //             </Modal>
-  //           }
-  //         >
-  //           All Products
-  //         </Link>
-  //       </Banner>
-  //     );
-  //   } 
-  //     return (
-  //       <>
-  //         <Banner status="warning">
-  //           <Text size="large">
-  //             {`You are just $${(1000 - totalCartAmount.amount).toFixed(
-  //               2
-  //             )} from getting 80% off pre-selected items `}
-  //           </Text>
-  //               {"   "}
-  //           <Link
-  //             overlay={
-  //               <Modal id="my-modal" padding title="Products ">
-  //                 <Grid columns={["33.3%", "33.3%", "33.3%"]} spacing="loose">
-  //                   {data?.products?.nodes.map((node) => (
-  //                     <Link
-  //                       to={`https://shoprunner-checkout-extension-ui.myshopify.com/products/${node.handle}`}
-  //                     >
-  //                       <View border="base" padding="base">
-  //                         <View>
-  //                           <Image
-  //                             source={node.images.edges[0].node.url}
-  //                             aspectRatio={1}
-  //                             fit="contain"
-  //                           />
-  //                           <Text>{node.title}</Text>
-
-  //                           <Text emphasis="bold" accessibilityRole="address">
-  //                             $ {node.variants.edges[0].node.price.amount}
-  //                           </Text>
-  //                         </View>
-  //                       </View>
-  //                     </Link>
-  //                   ))}
-  //                 </Grid>
-  //                 <Button onPress={() => ui.overlay.close("my-modal")}>
-  //                   Close
-  //                 </Button>
-  //               </Modal>
-  //             }
-  //           >
-  //             All Products
-  //           </Link>
-  //         </Banner>
-  //       </>
-  //     );
-  // } 
     return (
       <>
         {data?.products?.nodes.map(
           (node) =>
             node.id === prePurchaseId && (
               <>
-              <Heading level={2} inlineAlignment="start">You may also like </Heading>
+              <Heading level={2} inlineAlignment="start">{bannerTitle}</Heading>
               <InlineLayout
                 key={node.id}
                 columns={["20%", "60%", "auto"]}
@@ -229,7 +181,7 @@ function Extension() {
                   <Text>Vendor: {node.vendor} </Text>
                   <Divider size="small" alignment="center" />
                   <Text size="large" emphasis="bold">
-                    $ {node.variants.edges[0].node.price.amount}
+                    $ {node.variants.edges[0].node.price.amount}0
                   </Text>
                 </View>
                 <View border="none" padding="base">
