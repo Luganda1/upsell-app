@@ -18,8 +18,9 @@ import { useState, useCallback } from "react";
 import { createCookieSessionStorage, json } from "@remix-run/node";
 import { useLoaderData, useSubmit, useNavigation } from "@remix-run/react";
 import { authenticate } from "../shopify.server";
-import SearchBar from "~/Components/SearchBar";
-import Emptystate from "~/Components/Emptystate";
+import SearchBar from "../Components/SearchBar.jsx";
+import Emptystate from "../Components/Emptystate.jsx";
+import { LlamaModel } from "../Components/LlamaModel.jsx";
 
 /**
  * This uses the loader function to query the admin API for all the collections
@@ -265,6 +266,16 @@ export default function AdditionalPage() {
     () => setToastActive((toastActive) => !toastActive),
     []
   );
+
+  try {
+    const returnedInfo = LlamaModel()
+    console.log('====================================');
+    console.log(returnedInfo);
+    console.log('====================================');
+    
+  } catch (error) {
+    console.log("error :", error )
+  }
 
   const filteredCollection = collections.filter(
     (item) => item.title === selectedCollection
